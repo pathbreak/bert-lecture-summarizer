@@ -13,7 +13,7 @@ import json
 import sys
 import os
 from pprint import pprint
-import logging
+import logging as L
  
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
@@ -54,7 +54,8 @@ def process_cmd_summarize(args):
     with open(args.lecture, 'r') as f:
         lecture_content = f.read()
 
-    summ.summarize(lecture_content, args.ratio)
+    summary = summ.summarize(lecture_content, args.ratio)
+    print(summary)
 
 
 
@@ -82,8 +83,10 @@ class SingleModelProcessor(object):
 
     def run_clusters(self, content: List[str], ratio=0.2) -> List[str]:
 
+        L.info('Creating embeddings matrix')
         hidden = self.model.create_matrix(content, self.use_hidden)
 
+        L.info('Clustering embeddings')
         hidden_args = ClusterFeatures(hidden).cluster(ratio)
         if hidden_args[0] != 0:
             hidden_args.insert(0,0)
@@ -133,13 +136,11 @@ class BertParent(object):
         self.model_type = model_type
         self.model.eval()
 
-    def tokenize_input(self, text) -> torch.tensor:
-        if self.model_type == 'openApi':
-            indexed_tokens = self.tokenizer.encode(text)
-        else:
-            tokenized_text = self.tokenizer.tokenize(text)
-            indexed_tokens = self.tokenizer.convert_tokens_to_ids(tokenized_text)
-        return torch.tensor([indexed_tokens])
+    def create_matrix(self, content: List[str], use_hidden=False) -> ndarray:
+        train_vec = np.zeros((len(content), self.vector_size))
+        for i, t in tqdm(enumerate(content)):
+            train_vec[i] = self.extract_embeddings(t, use_hidden).data.numpy()
+        return train_vec
 
     def extract_embeddings(self, text: str, use_hidden=True, squeeze=False) -> ndarray:
         tokens_tensor = self.tokenize_input(text)
@@ -152,11 +153,13 @@ class BertParent(object):
             return pooled.detach().numpy().squeeze()
         return pooled
 
-    def create_matrix(self, content: List[str], use_hidden=False) -> ndarray:
-        train_vec = np.zeros((len(content), self.vector_size))
-        for i, t in tqdm(enumerate(content)):
-            train_vec[i] = self.extract_embeddings(t, use_hidden).data.numpy()
-        return train_vec
+    def tokenize_input(self, text) -> torch.tensor:
+        if self.model_type == 'openApi':
+            indexed_tokens = self.tokenizer.encode(text)
+        else:
+            tokenized_text = self.tokenizer.tokenize(text)
+            indexed_tokens = self.tokenizer.convert_tokens_to_ids(tokenized_text)
+        return torch.tensor([indexed_tokens])
 
 
 
