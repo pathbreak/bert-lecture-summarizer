@@ -64,8 +64,10 @@ def process_cmd_summarize(args):
 class SummarizerV2(object):
     def summarize(self, lecture_content, ratio):
         initial_sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
-        if len(initial_sentences) == 0:
+        num_sent = len(initial_sentences)
+        if  num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
+        L.info(f'Content length:{len(num_sent)}; ratio={ratio}; summary={num_sent * ratio}')
 
         model = SingleModelProcessor()
         sentences = model.run_clusters(initial_sentences, ratio)
