@@ -65,7 +65,8 @@ class SummarizerV2(object):
         if len(initial_sentences) == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
 
-        sentences = self.bert_model.run_clusters(initial_sentences, ratio)
+        model = SingleModelProcessor()
+        sentences = model.run_clusters(initial_sentences, ratio)
 
         result: str = ' '.join(sentences).strip()
 
