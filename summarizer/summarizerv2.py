@@ -14,6 +14,7 @@ import sys
 import os
 from pprint import pprint
 import logging as L
+import textwrap
  
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
@@ -55,7 +56,7 @@ def process_cmd_summarize(args):
         lecture_content = f.read()
 
     summary = summ.summarize(lecture_content, args.ratio)
-    print(summary)
+    print(textwrap.fill(summary, 80))
 
 
 
