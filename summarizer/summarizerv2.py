@@ -67,7 +67,7 @@ class SummarizerV2(object):
         num_sent = len(initial_sentences)
         if  num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
-        L.info(f'Content length:{len(num_sent)}; ratio={ratio}; summary={num_sent * ratio}')
+        L.info(f'Content length:{num_sent}; ratio={ratio}; summary={num_sent * ratio}')
 
         model = SingleModelProcessor()
         sentences = model.run_clusters(initial_sentences, ratio)
