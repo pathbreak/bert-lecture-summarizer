@@ -51,7 +51,7 @@ def main():
 def process_cmd_summarize(args):
     summ = SummarizerV2()
     
-    with open(args.lecturefile, 'r') as f:
+    with open(args.lecture, 'r') as f:
         lecture_content = f.read()
 
     summ.summarize(lecture_content, args.ratio)
@@ -218,7 +218,7 @@ class PreProcessor(object):
 
 
 def parse_args():
-    argp = argparse.ArgumentParser(description='Python client')
+    argp = argparse.ArgumentParser(description='Lecture Summarizer')
     
     # Common args https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
     
