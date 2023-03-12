@@ -93,8 +93,12 @@ class SingleModelProcessor(object):
         L.info('Clustering embeddings')
         hidden_args = ClusterFeatures(hidden).cluster(ratio)
         L.info(f'hidden_args: len={len(hidden_args)}: {hidden_args}')
-        if hidden_args[0] != 0:
-            hidden_args.insert(0,0)
+        
+        # Not clear why this hardcoded logic exists to always include the
+        # first sentence in the summary. But its consequence is that there's
+        # always one sentence more than what user requests.
+        # if hidden_args[0] != 0:
+        #    hidden_args.insert(0,0)
 
         return [content[j] for j in hidden_args]
 
