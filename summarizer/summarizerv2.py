@@ -55,8 +55,15 @@ def process_cmd_summarize(args):
     with open(args.lecture, 'r') as f:
         lecture_content = f.read()
 
-    summary = summ.summarize(lecture_content, args.ratio)
-    print(textwrap.fill(summary, 80))
+    
+    summary_sentences = summ.summarize(lecture_content, args.ratio)
+    
+    if args.nojoin:
+        for s in summary_sentences:
+            print(textwrap.fill(s.strip(), 80))
+    else:
+        summary: str = ' '.join(summary_sentences).strip()
+        print(textwrap.fill(summary, 80))
 
 
 
@@ -72,9 +79,9 @@ class SummarizerV2(object):
         model = SingleModelProcessor()
         sentences = model.run_clusters(initial_sentences, ratio)
 
-        result: str = ' '.join(sentences).strip()
-
-        return result
+        #result: str = ' '.join(sentences).strip()
+        #return result
+        return sentences
         
     
     
@@ -268,6 +275,8 @@ def parse_args():
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
+    summ_cmd.add_argument('--nojoin', action='store_true', 
+                          help='Print summary as list of sentences instead of joined paragraph.')
     #X_cmd.add_argument('--flag-def-false', dest='flag_def_false', action='store_true', help='Boolean flag default false')
     #X_cmd.add_argument('--flag-def-true', dest='flag_def_true' action='store_false', help='Boolean flag default true')
 
