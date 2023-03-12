@@ -176,6 +176,20 @@ class ClusterFeatures(object):
         self.algorithm = algorithm
         self.pca_k = pca_k
 
+    def cluster(self, ratio=0.1):
+        # If ratio < 1, treat it as a ratio. If it's >=1, treat it as number of sentences.
+        #k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
+        if ratio >= 1:
+            k = int(ratio)
+        else:
+            k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
+
+        model = self.__get_model(k).fit(self.features)
+        centroids = self.__get_centroids(model)
+        cluster_args = self.__find_closest_args(centroids)
+        sorted_values = sorted(cluster_args.values())
+        return sorted_values
+
     def __get_model(self, k):
         if self.algorithm == 'gmm':
             return GaussianMixture(n_components=k)
@@ -205,13 +219,6 @@ class ClusterFeatures(object):
             cur_arg = -1
         return args
 
-    def cluster(self, ratio=0.1):
-        k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
-        model = self.__get_model(k).fit(self.features)
-        centroids = self.__get_centroids(model)
-        cluster_args = self.__find_closest_args(centroids)
-        sorted_values = sorted(cluster_args.values())
-        return sorted_values
 
 
 class PreProcessor(object):
@@ -251,7 +258,8 @@ def parse_args():
 
     summ_cmd = subp.add_parser('summarize', parents=[common_args], description='Summarize', help='Summarize')
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
-    summ_cmd.add_argument('ratio', metavar='RATIO', type=float, help='Ratio of summary')
+    summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
+                          help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
     #X_cmd.add_argument('--flag-def-false', dest='flag_def_false', action='store_true', help='Boolean flag default false')
     #X_cmd.add_argument('--flag-def-true', dest='flag_def_true' action='store_false', help='Boolean flag default true')
 
