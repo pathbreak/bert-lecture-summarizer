@@ -67,7 +67,7 @@ class SummarizerV2(object):
         num_sent = len(initial_sentences)
         if  num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
-        L.info(f'Content length:{num_sent}; ratio={ratio}; summary={num_sent * ratio}')
+        L.info(f'Content length:{num_sent}; ratio={ratio}; summary={ratio if ratio >= 1 else num_sent * ratio}')
 
         model = SingleModelProcessor()
         sentences = model.run_clusters(initial_sentences, ratio)
@@ -88,6 +88,7 @@ class SingleModelProcessor(object):
 
         L.info('Creating embeddings matrix')
         hidden = self.model.create_matrix(content, self.use_hidden)
+        L.info(f'Embeddings matrix shape: {hidden.shape}')
 
         L.info('Clustering embeddings')
         hidden_args = ClusterFeatures(hidden).cluster(ratio)
@@ -184,6 +185,8 @@ class ClusterFeatures(object):
         else:
             k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
 
+        L.info(f'Number of centroids: {k}. Length of features matrix:{len(self.features)}')
+        
         model = self.__get_model(k).fit(self.features)
         centroids = self.__get_centroids(model)
         cluster_args = self.__find_closest_args(centroids)
