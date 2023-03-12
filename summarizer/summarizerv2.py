@@ -92,6 +92,7 @@ class SingleModelProcessor(object):
 
         L.info('Clustering embeddings')
         hidden_args = ClusterFeatures(hidden).cluster(ratio)
+        L.info(f'hidden_args: len={len(hidden_args)}: {hidden_args}')
         if hidden_args[0] != 0:
             hidden_args.insert(0,0)
 
