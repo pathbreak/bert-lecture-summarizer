@@ -87,7 +87,7 @@ class SummarizerV2(object):
 class SingleModelProcessor(object):
 
     def __init__(self, model='bert', model_size='large', use_hidden=True):
-        self.emb_model = BertLegacyEmbeddingModel(model, {
+        self.emb_model = BertLegacyEmbeddingModel({
             'model_type' : 'bert',
             'size' : 'large',
             'use_hidden' : use_hidden
