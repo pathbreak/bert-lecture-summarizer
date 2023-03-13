@@ -532,7 +532,7 @@ class ClusterFeatures(object):
 class PreProcessor(object):
     def process_content_sentences(self, body: str) -> List[str]:
         sentences = nltk.tokenize.sent_tokenize(body)
-        
+        return sentences
         sel_sentences = []
         for s in sentences:
             if len(s) > 75 and \
