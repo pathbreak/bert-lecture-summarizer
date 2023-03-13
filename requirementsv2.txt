@@ -2,7 +2,7 @@ torch
 numpy
 pytorch-pretrained-bert
 sentence-transformers
-sklearn
+scikit-learn
 spacy
 spacy-transformers
 coreferee
