@@ -18,7 +18,6 @@ import textwrap
 import bisect
  
 import torch
-import torch.nn.functional as F
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer
 import transformers
@@ -391,6 +390,7 @@ class SBertEmbeddingModel(EmbeddingModel):
         
 
 class HFTransformersEmbeddingModel(EmbeddingModel):
+    
     """ Embedding implementations using HF transformers.
     
 
