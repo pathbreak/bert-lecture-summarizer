@@ -60,7 +60,7 @@ def process_cmd_summarize(args):
         lecture_content = f.read()
 
     
-    summary_sentences = summ.summarize(lecture_content, args.ratio)
+    summary_sentences = summ.summarize(lecture_content, args)
     
     if args.nojoin:
         for s in summary_sentences:
@@ -73,36 +73,25 @@ def process_cmd_summarize(args):
 
 
 class SummarizerV2(object):
-    def summarize(self, lecture_content, ratio):
+    def summarize(self, lecture_content, args):
         
         # Code based on lecture_summarizer.py > SingleModelProcessor.
         
         sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
         num_sent = len(sentences)
+        ratio = args.ratio
         if  num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
         
         L.info(f'Content length:{num_sent}; ratio={ratio}; summary={ratio if ratio >= 1 else num_sent * ratio}')
 
-        '''
-        emb_model = BertLegacyEmbeddingModel({
-            'model_type' : 'bert',
-            'size' : 'large',
-            'use_hidden' : True
-        })
-        
-        emb_model = SBertEmbeddingModel({
-            'model': 'all-mpnet-base-v2' #all-MiniLM-L6-v2
-        }) 
-        '''
-        
-        emb_model = HFTransformersEmbeddingModel({
-            'model': 'facebook/bart-large' #'distilbert-base-cased'
-        })
-
         L.info('Creating embeddings matrix')
         #embeddings = self.model.create_matrix(sentences, self.use_hidden)
+        
+        emb_model = self.create_embedding_model(args)
+        
         embeddings = emb_model.embeddings(sentences)
+        
         L.info(f'Embeddings matrix shape: {embeddings.shape}')
         
         
@@ -117,6 +106,32 @@ class SummarizerV2(object):
 
         summary_sentences = [sentences[i] for i in centroid_sent_idxes]
         return summary_sentences
+    
+    
+    def create_embedding_model(self, args):
+        
+        if args.emb_approach == 'sbert':
+            emb_model = SBertEmbeddingModel({
+                'model': args.model #'all-mpnet-base-v2' #all-MiniLM-L6-v2
+            }) 
+        
+        elif args.emb_approach == 'hf':
+            emb_model = HFTransformersEmbeddingModel({
+                'model': args.model # 'facebook/bart-large' #'distilbert-base-cased'
+            })
+        
+        elif args.emb_approach == 'bertlegacy':
+            emb_model = BertLegacyEmbeddingModel({
+                'model_type' : args.legacy_type, #'bert'
+                'size' : args.legacy_size, #'large',
+                'use_hidden' : True
+            })
+        
+        else:
+            raise RuntimeError(f'Unknown embedding model {args.emb_model}')
+        
+        return emb_model
+        
 
     
 
@@ -457,6 +472,12 @@ def parse_args():
 
     summ_cmd = subp.add_parser('summarize', parents=[common_args], description='Summarize', help='Summarize')
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
+    
+    summ_cmd.add_argument('approach', dest='emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
+    summ_cmd.add_argument('model', dest='model', metavar='MODEL-NAME', help='Name of SBERT or HF model')
+    summ_cmd.add_argument('--legacy-type', dest='legacy_type', metavar='LEGACY-MODEL-NAME', help='bert|gpt2')
+    summ_cmd.add_argument('--legacy-size', dest='legacy_size', metavar='LEGACY-MODEL-SIZE', help='base|large')
+    
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
     summ_cmd.add_argument('--nojoin', action='store_true', 
