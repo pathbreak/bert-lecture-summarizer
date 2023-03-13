@@ -278,8 +278,7 @@ class HFTransformersEmbeddingModel(EmbeddingModel):
         self.config = config
         self.transformer_pipeline = transformers.pipeline(
             'feature-extraction', 
-            model=self.config['model'],
-            return_tensors=True)
+            model=self.config['model'])
     
     def embeddings(self, sentences: List[str]) -> ndarray:
         """
@@ -296,7 +295,7 @@ class HFTransformersEmbeddingModel(EmbeddingModel):
         """
         
         # This returns a torch.tensor
-        embeddings = self.transformer_pipeline(sentences)
+        embeddings = self.transformer_pipeline(sentences, return_tensors=True)
         L.info(f'Embeddings: {embeddings.shape}')
         embeddings_ndarray = embeddings.detach().numpy()
         return embeddings_ndarray
