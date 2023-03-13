@@ -15,6 +15,7 @@ import os
 from pprint import pprint
 import logging as L
 import textwrap
+import bisect
  
 import torch
 import torch.nn.functional as F
@@ -24,11 +25,12 @@ import transformers
 from transformers import AutoTokenizer, AutoModel
 import numpy as np
 from numpy import ndarray
+import spacy
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 from sklearn.cluster import AffinityPropagation
-import nltk
+#import nltk
 
 from typing import List
 from tqdm import tqdm
@@ -77,7 +79,14 @@ class SummarizerV2(object):
         
         # Code based on lecture_summarizer.py > SingleModelProcessor.
         
-        sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
+        # Using spacy for sentence segmentation and coreference detection.
+        nlp = spacy.load("en_core_web_trf")
+        nlp.add_pipe('coreferee')
+        doc = nlp(lecture_content)
+        
+        sentences, coref_sentences = self.build_sentence_info(doc, args)
+        
+        #sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
         num_sent = len(sentences)
         ratio = args.ratio
         if  num_sent == 0:
@@ -104,8 +113,56 @@ class SummarizerV2(object):
         # if hidden_args[0] != 0:
         #    hidden_args.insert(0,0)
 
-        summary_sentences = [sentences[i] for i in centroid_sent_idxes]
+        sel_sentences = [sentences[i] for i in centroid_sent_idxes]
+        
+        # If a selected sentence is part of a coreference group, include
+        # previous sentences of that group too in the summary.
+        if not args.nocoref:
+            summary_sentences = self.include_coreferenced_sentences(sel_sentences, coref_sentences)
+        else:
+            summary_sentences = sel_sentences
+
         return summary_sentences
+    
+    
+    def build_sentence_info(self, doc, args):
+        """Get a list of sentences and coreferenced sentences.
+
+        Args:
+            doc (spacy.Document): The spacy document
+            args (Namespace): Arguments to the tool.
+        """
+        # If the sentences selected for summary contain coreferences, then
+        # including the sentences with previous references may make the quality of
+        # summary better.
+        # So we identify sets of sentences that contain coreferences. To do that,
+        # we have to infer the sentence indexes that contain coreferring tokens.
+        # The biset.bisect_left() allows us to find those sentence indexes quickly.
+        # Example: If a coref chain contains 5th and 9th token, we find their
+        # corresponding sentence indexes and cache them here in coref_sentences.
+        sentences = []
+        sentence_ends = []
+        for sent_i, sent in enumerate(doc.sents):
+            sentence_ends.append(sent.end)
+            #print(f'{sent_i}: {sent}')
+            sentences.append(sent)
+
+        # This is a list of sets where each set is a sentence group related by references
+        # to the same entity.
+        coref_sentences = []
+        if not args.nocoref:
+            for coref_chain in doc._.coref_chains:
+                sents_for_chain = set()
+                for mention in coref_chain:
+                    token_idx = mention[0]
+                    sent_i = bisect.bisect_left(sentence_ends, token_idx)
+                    #tok = doc[token_idx]
+                    #print(f'{tok}: tok #{token_idx} sent #{sent_i}: {tok.sent}')
+                    sents_for_chain.add(sent_i)
+                #print('\n\n')
+                coref_sentences.append(sents_for_chain)
+            
+        return sentences, coref_sentences
     
     
     def create_embedding_model(self, args):
@@ -147,6 +204,19 @@ class SummarizerV2(object):
             raise RuntimeError(f'Unknown embedding model {args.emb_model}')
         
         return emb_model
+    
+    
+    def include_coreferenced_sentences(self, sel_sentences, coref_sentences):
+        summary_sentences = []
+        for sel_sent_idx in sel_sentences:
+            for sents_of_chain in coref_sentences:
+                if sel_sent_idx in sents_of_chain:
+                    for coref_sent_i in sents_of_chain:
+                        if coref_sent_i < sel_sent_idx:
+                            summary_sentences.append(coref_sent_i)
+            summary_sentences.append(sents_of_chain)
+            
+        return summary_sentences
         
 
     
@@ -453,7 +523,7 @@ class ClusterFeatures(object):
 
 class PreProcessor(object):
     def process_content_sentences(self, body: str) -> List[str]:
-        sentences = nltk.tokenize.sent_tokenize(body)
+        #sentences = nltk.tokenize.sent_tokenize(body)
         return [c for c in sentences if len(c) > 75 and not c.lower().startswith('but') and
                 not c.lower().startswith('and')
                 and not c.lower().__contains__('quiz') and
@@ -497,6 +567,8 @@ def parse_args():
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
     summ_cmd.add_argument('--nojoin', action='store_true', 
                           help='Print summary as list of sentences instead of joined paragraph.')
+    summ_cmd.add_argument('--nocoref', action='store_true', 
+                          help='Disable coreference resolution.')
     #X_cmd.add_argument('--flag-def-false', dest='flag_def_false', action='store_true', help='Boolean flag default false')
     #X_cmd.add_argument('--flag-def-true', dest='flag_def_true' action='store_false', help='Boolean flag default true')
 
