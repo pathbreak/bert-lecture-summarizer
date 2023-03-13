@@ -153,7 +153,7 @@ class SummarizerV2(object):
         for sent_i, sent in enumerate(doc.sents):
             sentence_ends.append(sent.end)
             #print(f'{sent_i}: {sent}')
-            sentences.append(sent)
+            sentences.append(sent.text)
 
         # This is a list of sets where each set is a sentence group related by references
         # to the same entity.
