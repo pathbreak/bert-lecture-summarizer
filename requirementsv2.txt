@@ -1,9 +1,9 @@
-torch
-numpy
+#torch
+#numpy
 pytorch-pretrained-bert
 sentence-transformers
-scikit-learn
-spacy
+#scikit-learn
+#spacy
 spacy-transformers
 coreferee
 hdbscan
