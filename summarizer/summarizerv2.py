@@ -97,7 +97,7 @@ class SummarizerV2(object):
         '''
         
         emb_model = HFTransformersEmbeddingModel({
-            'model': 'distilbert-base-cased'
+            'model': 'facebook/bart-large' #'distilbert-base-cased'
         })
 
         L.info('Creating embeddings matrix')
