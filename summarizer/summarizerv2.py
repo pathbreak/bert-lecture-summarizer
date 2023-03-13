@@ -143,7 +143,7 @@ class ClusteringModel(object):
     def __init__(self, config: dict):
         self.config = config
     
-    def cluster(self, embeddings: ndarray) -> List(int):
+    def cluster(self, embeddings: ndarray) -> List[int]:
         """
         Cluster the given embeddings.
 
@@ -152,7 +152,7 @@ class ClusteringModel(object):
             and E is the dimension of embedding vectors.
             
         Returns:
-            A `List(int)` with the indexes of the embeddings that are closest
+            A `List[int]` with the indexes of the embeddings that are closest
             to the cluster centers.
         """
         pass
