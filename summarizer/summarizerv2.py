@@ -113,24 +113,30 @@ class SummarizerV2(object):
         # if hidden_args[0] != 0:
         #    hidden_args.insert(0,0)
 
-        sel_sentences = [sentences[i] for i in centroid_sent_idxes]
-        
         # If a selected sentence is part of a coreference group, include
         # previous sentences of that group too in the summary.
-        if not args.nocoref:
-            summary_sentences = self.include_coreferenced_sentences(sel_sentences, coref_sentences)
+        if args.nocoref:
+            summary_sentences = [sentences[i] for i in centroid_sent_idxes]
         else:
-            summary_sentences = sel_sentences
+            summary_sentence_indexes = self.include_coreferenced_sentences(centroid_sent_idxes, coref_sentences)
+            summary_sentences = [sentences[i] for i in summary_sentence_indexes]
+            
 
         return summary_sentences
     
     
     def build_sentence_info(self, doc, args):
-        """Get a list of sentences and coreferenced sentences.
+        """Get a list of sentences and set of coreferenced sentence indexes.
 
         Args:
             doc (spacy.Document): The spacy document
             args (Namespace): Arguments to the tool.
+            
+        Returns:
+            Tuple of (sentences, coref_sentences) where
+                sentences -> List[str]: List of sentences in the doc
+                coref_sentences -> List[Set[int]]: List of coreferencing sentence sets. Each
+                    set contains indexes into `sentences`.
         """
         # If the sentences selected for summary contain coreferences, then
         # including the sentences with previous references may make the quality of
@@ -207,16 +213,16 @@ class SummarizerV2(object):
     
     
     def include_coreferenced_sentences(self, sel_sentences, coref_sentences):
-        summary_sentences = []
+        summary_sentence_indexes = []
         for sel_sent_idx in sel_sentences:
             for sents_of_chain in coref_sentences:
                 if sel_sent_idx in sents_of_chain:
                     for coref_sent_i in sents_of_chain:
                         if coref_sent_i < sel_sent_idx:
-                            summary_sentences.append(coref_sent_i)
-            summary_sentences.append(sents_of_chain)
+                            summary_sentence_indexes.append(coref_sent_i)
+            summary_sentence_indexes.append(sel_sent_idx)
             
-        return summary_sentences
+        return summary_sentence_indexes
         
 
     
