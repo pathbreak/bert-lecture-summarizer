@@ -123,10 +123,22 @@ class SummarizerV2(object):
             })
         
         elif args.emb_approach == 'bertlegacy':
+            if args.model == 'bert-base':
+                model_type = 'bert'
+                model_size = 'base'
+                
+            elif args.model == 'bert-large':
+                model_type = 'bert'
+                model_size = 'large'
+                
+            elif args.model == 'gpt2':
+                model_type = 'gpt2'
+                model_size = 'gpt2'
+                
             L.info(f'Loading legacy model {args.legacy_type} {args.legacy_size}')
             emb_model = BertLegacyEmbeddingModel({
-                'model_type' : args.legacy_type, #'bert'
-                'size' : args.legacy_size, #'large',
+                'model_type' : model_type, #'bert'
+                'size' : model_size, #'large',
                 'use_hidden' : True
             })
         
@@ -190,33 +202,33 @@ class BertLegacyEmbeddingModel(EmbeddingModel):
 
     model_handler = {
         'bert': BertModel,
-        'openApi': GPT2Model
+        'gpt2': GPT2Model
     }
 
     token_handler = {
-        'openApi': GPT2Tokenizer,
+        'gpt2': GPT2Tokenizer,
         'bert': BertTokenizer
     }
 
     size_handler = {
         'base': {
             'bert': 'bert-base-uncased',
-            'openApi': 'gpt2'
+            'gpt2': 'gpt2'
         },
         'large': {
             'bert': 'bert-large-uncased',
-            'openApi': 'gpt2'
+            'gpt2': 'gpt2'
         }
     }
 
     vector_handler = {
         'base': {
             'bert': 768,
-            'openApi': 768
+            'gpt2': 768
         },
         'large': {
             'bert': 1024,
-            'openApi': 768
+            'gpt2': 768
         }
     }
 
@@ -250,14 +262,14 @@ class BertLegacyEmbeddingModel(EmbeddingModel):
         hidden_states, pooled = self.model(tokens_tensor)
         if use_hidden:
             pooled = hidden_states[-2].mean(dim=1)
-        if self.model_type == 'openApi':
+        if self.model_type == 'gpt2':
             pooled = hidden_states.mean(dim=1)
         if squeeze:
             return pooled.detach().numpy().squeeze()
         return pooled
 
     def tokenize_input(self, text) -> torch.tensor:
-        if self.model_type == 'openApi':
+        if self.model_type == 'gpt2':
             indexed_tokens = self.tokenizer.encode(text)
         else:
             tokenized_text = self.tokenizer.tokenize(text)
@@ -477,9 +489,8 @@ def parse_args():
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
     
     summ_cmd.add_argument('emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
-    summ_cmd.add_argument('model', metavar='MODEL-NAME', help='Name of SBERT or HF model')
-    summ_cmd.add_argument('--legacy-type', dest='legacy_type', metavar='LEGACY-MODEL-NAME', help='bert|gpt2')
-    summ_cmd.add_argument('--legacy-size', dest='legacy_size', metavar='LEGACY-MODEL-SIZE', help='base|large')
+    summ_cmd.add_argument('model', metavar='MODEL-NAME', 
+                          help='Name of SBERT, HF, or legacy (bert-large/bert-base/gpt2) model')
     
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
