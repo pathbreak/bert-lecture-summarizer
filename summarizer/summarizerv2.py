@@ -123,6 +123,7 @@ class SummarizerV2(object):
             })
         
         elif args.emb_approach == 'bertlegacy':
+            L.info(f'Loading legacy model {args.model}')
             if args.model == 'bert-base':
                 model_type = 'bert'
                 model_size = 'base'
@@ -135,7 +136,7 @@ class SummarizerV2(object):
                 model_type = 'gpt2'
                 model_size = 'gpt2'
                 
-            L.info(f'Loading legacy model {args.legacy_type} {args.legacy_size}')
+            
             emb_model = BertLegacyEmbeddingModel({
                 'model_type' : model_type, #'bert'
                 'size' : model_size, #'large',
