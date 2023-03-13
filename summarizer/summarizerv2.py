@@ -83,9 +83,9 @@ class SummarizerV2(object):
         nlp.add_pipe('coreferee')
         doc = nlp(lecture_content)
         
-        #sentences, coref_sentences = self.build_sentence_info(doc, args)
+        sentences, coref_sentences = self.build_sentence_info(doc, args)
         
-        sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
+        #sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
         num_sent = len(sentences)
         ratio = args.ratio
         if  num_sent == 0:
