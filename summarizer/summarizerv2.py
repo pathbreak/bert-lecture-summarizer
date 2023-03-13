@@ -296,7 +296,7 @@ class HFTransformersEmbeddingModel(EmbeddingModel):
         
         # This returns a torch.tensor
         embeddings = self.transformer_pipeline(sentences, return_tensors=True)
-        L.info(f'Embeddings: {embeddings.shape}')
+        L.info(f'Embeddings: {type(embeddings)}: {embeddings}')
         embeddings_ndarray = embeddings.detach().numpy()
         return embeddings_ndarray
 
