@@ -19,6 +19,7 @@ import textwrap
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer
+import transformers
 import numpy as np
 from numpy import ndarray
 from sklearn.cluster import KMeans
@@ -86,17 +87,22 @@ class SummarizerV2(object):
             'size' : 'large',
             'use_hidden' : True
         })
-        '''
+        
         emb_model = SBertEmbeddingModel({
             'model': 'all-mpnet-base-v2' #all-MiniLM-L6-v2
         }) 
+        '''
+        
+        emb_model = HFTransformersEmbeddingModel({
+            'model': 'distilbert-base-cased'
+        })
 
         L.info('Creating embeddings matrix')
         #embeddings = self.model.create_matrix(sentences, self.use_hidden)
         embeddings = emb_model.embeddings(sentences)
         L.info(f'Embeddings matrix shape: {embeddings.shape}')
         
-        L.info('Clustering embeddings')
+        
         centroid_sent_idxes = ClusterFeatures(embeddings).cluster(ratio)
         L.info(f'centroid_sent_idxes: len={len(centroid_sent_idxes)}: {centroid_sent_idxes}')
         
@@ -265,6 +271,34 @@ class SBertEmbeddingModel(EmbeddingModel):
 
         
 
+class HFTransformersEmbeddingModel(EmbeddingModel):
+    """ Embedding implementations using HF transformers."""
+
+    def __init__(self, config: dict):
+        self.config = config
+        self.transformer_pipeline = transformers.pipeline(
+            "feature-extraction", 
+            model=self.config['model'])
+    
+    def embeddings(self, sentences: List[str]) -> ndarray:
+        """
+        Calculate embeddings for the given sentences.
+        
+        Args:
+            sentences -> List[str] : List of sentences.
+            
+        Returns:
+            A `numpy.ndarray` with shape (N, E) where N=len(sentences)
+            and E is the dimension of embedding vectors produced by this
+            model.
+        
+        """
+        
+        # This returns a torch.tensor
+        embeddings = self.transformer_pipeline(sentences)
+        L.info(f'Embeddings: {embeddings.shape}')
+        embeddings_ndarray = embeddings.detach().numpy()
+        return embeddings_ndarray
 
 
 
@@ -280,6 +314,8 @@ class ClusterFeatures(object):
         self.pca_k = pca_k
 
     def cluster(self, ratio=0.1):
+        L.info(f'Clustering embeddings using {self.algorithm}')
+
         # If ratio < 1, treat it as a ratio. If it's >=1, treat it as number of sentences.
         #k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
         if ratio >= 1:
