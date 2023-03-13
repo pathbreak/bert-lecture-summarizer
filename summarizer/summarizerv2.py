@@ -17,9 +17,11 @@ import logging as L
 import textwrap
  
 import torch
+import torch.nn.functional as F
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
 from sentence_transformers import SentenceTransformer
 import transformers
+from transformers import AutoTokenizer, AutoModel
 import numpy as np
 from numpy import ndarray
 from sklearn.cluster import KMeans
@@ -79,6 +81,7 @@ class SummarizerV2(object):
         num_sent = len(sentences)
         if  num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
+        
         L.info(f'Content length:{num_sent}; ratio={ratio}; summary={ratio if ratio >= 1 else num_sent * ratio}')
 
         '''
@@ -245,11 +248,15 @@ class BertLegacyEmbeddingModel(EmbeddingModel):
 
     
 class SBertEmbeddingModel(EmbeddingModel):
-    """ Embedding implementations using sentence-transformers."""
+    """ Embedding implementations using sentence-transformers.
+    
+    Models can be its own official ones: https://www.sbert.net/docs/pretrained_models.html
+    Or the ones from HF: https://huggingface.co/models?library=sentence-transformers&sort=downloads
+    """
 
     def __init__(self, config: dict):
-        self.config = config
-        self.emb_model = SentenceTransformer(self.config['model'])
+        super().__init__(config)
+    
     
     def embeddings(self, sentences: List[str]) -> ndarray:
         """
@@ -266,19 +273,25 @@ class SBertEmbeddingModel(EmbeddingModel):
         """
         
         # encode() returns an ndarray.
-        embeddings = self.emb_model.encode(sentences)
+        emb_model = SentenceTransformer(self.config['model'])
+
+        embeddings = emb_model.encode(sentences)
+
         return embeddings
 
         
 
 class HFTransformersEmbeddingModel(EmbeddingModel):
-    """ Embedding implementations using HF transformers."""
+    """ Embedding implementations using HF transformers.
+    
+
+    https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2#usage-huggingface-transformers.
+    
+    We can skip all that by simply using sentence-transformers.
+    """
 
     def __init__(self, config: dict):
-        self.config = config
-        self.transformer_pipeline = transformers.pipeline(
-            'feature-extraction', 
-            model=self.config['model'])
+        super().__init__(config)
     
     def embeddings(self, sentences: List[str]) -> ndarray:
         """
@@ -294,10 +307,55 @@ class HFTransformersEmbeddingModel(EmbeddingModel):
         
         """
         
-        # This returns a torch.tensor
-        embeddings = self.transformer_pipeline(sentences, return_tensors=True)
-        L.info(f'Embeddings: {type(embeddings)}: {embeddings}')
-        embeddings_ndarray = embeddings.detach().numpy()
+        # This returns a List[tensor] where each tensor is of shape 
+        #   (1, num_tokens_in_sentence, vector_dimensions).
+        #
+        # The problem with raw HF transformers is that it returns contextualized 
+        # **word embeddings**. To convert them to sentence embeddings, stuff like 
+        # mean pooling is necessary as explained in 
+        # See https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2#usage-huggingface-transformers.
+        
+        # The features returned by pipeline() are exactly the same as those returned
+        # by this sequence:
+        #       inputs = AutoTokenizer.from_pretrained(...)("Hello, my dog is cute", return_tensors="pt")
+        #       model = AutoModel.from_pretrained(...)(**inputs)
+        #       embeddings = outputs.last_hidden_state # or outputs[0]
+        #
+        # However, we also need the attention_mask and pipeline doesn't retain it.
+        # So run the model raw instead of through a pipeline, as shown in
+        #   https://huggingface.co/sentence-transformers/all-MiniLM-L12-v2#usage-huggingface-transformers
+        #
+        # transformer_pipeline = transformers.pipeline(
+        #    'feature-extraction', 
+        #    model=self.config['model'])
+        #embeddings = transformer_pipeline(sentences, return_tensors=True)
+        
+        model_name = self.config['model']
+        
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModel.from_pretrained(model_name)
+        
+        # Tokenize sentences
+        encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
+        
+        # Compute token embeddings
+        with torch.no_grad():
+            model_output = model(**encoded_input)
+            
+        # Perform mean pooling
+        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+
+        attention_mask = encoded_input['attention_mask']
+
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+
+        sentence_embeddings =  (torch.sum(token_embeddings * input_mask_expanded, 1) / 
+                                torch.clamp(input_mask_expanded.sum(1), min=1e-9))
+        
+        L.info(f'Embeddings: {sentence_embeddings.shape}')
+        
+        embeddings_ndarray = sentence_embeddings.detach().numpy()
+
         return embeddings_ndarray
 
 
