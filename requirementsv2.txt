@@ -4,6 +4,7 @@ pytorch-pretrained-bert
 sentence-transformers
 sklearn
 spacy
+spacy-transformers
 coreferee
 hdbscan
 nltk
