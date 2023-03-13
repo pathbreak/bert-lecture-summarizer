@@ -116,8 +116,10 @@ class SummarizerV2(object):
         # If a selected sentence is part of a coreference group, include
         # previous sentences of that group too in the summary.
         if args.nocoref:
+            L.info('Skipping coreference resolution')
             summary_sentences = [sentences[i] for i in centroid_sent_idxes]
         else:
+            L.info('Coreference resolution')
             summary_sentence_indexes = self.include_coreferenced_sentences(centroid_sent_idxes, coref_sentences)
             summary_sentences = [sentences[i] for i in summary_sentence_indexes]
             
