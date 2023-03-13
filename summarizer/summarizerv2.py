@@ -277,8 +277,9 @@ class HFTransformersEmbeddingModel(EmbeddingModel):
     def __init__(self, config: dict):
         self.config = config
         self.transformer_pipeline = transformers.pipeline(
-            "feature-extraction", 
-            model=self.config['model'])
+            'feature-extraction', 
+            model=self.config['model'],
+            return_tensors=True)
     
     def embeddings(self, sentences: List[str]) -> ndarray:
         """
