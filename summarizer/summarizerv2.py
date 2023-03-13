@@ -473,7 +473,7 @@ def parse_args():
     summ_cmd = subp.add_parser('summarize', parents=[common_args], description='Summarize', help='Summarize')
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
     
-    summ_cmd.add_argument('approach', dest='emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
+    summ_cmd.add_argument('emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
     summ_cmd.add_argument('model', dest='model', metavar='MODEL-NAME', help='Name of SBERT or HF model')
     summ_cmd.add_argument('--legacy-type', dest='legacy_type', metavar='LEGACY-MODEL-NAME', help='bert|gpt2')
     summ_cmd.add_argument('--legacy-size', dest='legacy_size', metavar='LEGACY-MODEL-SIZE', help='base|large')
