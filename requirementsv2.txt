@@ -1,7 +1,11 @@
 torch
 numpy
 pytorch-pretrained-bert
+sentence-transformers
 sklearn
+spacy
+coreferee
+hdbscan
 nltk
 coloredlogs
 tqdm

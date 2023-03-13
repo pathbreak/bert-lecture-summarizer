@@ -84,22 +84,26 @@ class SummarizerV2(object):
         return sentences
         
     
-    
 class SingleModelProcessor(object):
 
     def __init__(self, model='bert', model_size='large', use_hidden=True):
-        self.model = BertParent(model, model_size)
-        self.use_hidden = use_hidden
+        self.emb_model = BertLegacyEmbeddingModel(model, {
+            'model_type' : 'bert',
+            'size' : 'large',
+            'use_hidden' : use_hidden
+        })
 
-    def run_clusters(self, content: List[str], ratio=0.2) -> List[str]:
+
+    def run_clusters(self, sentences: List[str], ratio=0.2) -> List[str]:
 
         L.info('Creating embeddings matrix')
-        hidden = self.model.create_matrix(content, self.use_hidden)
-        L.info(f'Embeddings matrix shape: {hidden.shape}')
+        #embeddings = self.model.create_matrix(sentences, self.use_hidden)
+        embeddings = self.emb_model.embeddings(sentences)
+        L.info(f'Embeddings matrix shape: {embeddings.shape}')
 
         L.info('Clustering embeddings')
-        hidden_args = ClusterFeatures(hidden).cluster(ratio)
-        L.info(f'hidden_args: len={len(hidden_args)}: {hidden_args}')
+        centroid_sent_idxes = ClusterFeatures(embeddings).cluster(ratio)
+        L.info(f'centroid_sent_idxes: len={len(centroid_sent_idxes)}: {centroid_sent_idxes}')
         
         # Not clear why this hardcoded logic exists to always include the
         # first sentence in the summary. But its consequence is that there's
@@ -107,11 +111,59 @@ class SingleModelProcessor(object):
         # if hidden_args[0] != 0:
         #    hidden_args.insert(0,0)
 
-        return [content[j] for j in hidden_args]
+        return [sentences[i] for i in centroid_sent_idxes]
 
 
 
-class BertParent(object):
+class EmbeddingModel(object):
+    """ Base class for all embedding implementations."""
+
+    def __init__(self, config: dict):
+        self.config = config
+    
+    def embeddings(self, sentences: List[str]) -> ndarray:
+        """
+        Calculate embeddings for the given sentences.
+        
+        Args:
+            sentences -> List[str] : List of sentences.
+            
+        Returns:
+            A `numpy.ndarray` with shape (N, E) where N=len(sentences)
+            and E is the dimension of embedding vectors produced by this
+            model.
+        
+        """ 
+        pass
+    
+
+class ClusteringModel(object):
+    """ Base class for all clustering implementations."""
+
+    def __init__(self, config: dict):
+        self.config = config
+    
+    def cluster(self, embeddings: ndarray) -> List(int):
+        """
+        Cluster the given embeddings.
+
+        Args:
+            embeddings -> ndarray: The embeddings with shape (N,E) where N=len(sentences)
+            and E is the dimension of embedding vectors.
+            
+        Returns:
+            A `List(int)` with the indexes of the embeddings that are closest
+            to the cluster centers.
+        """
+        pass
+
+
+
+class BertLegacyEmbeddingModel(EmbeddingModel):
+    """
+    Implementation copied from BertParent.py that uses the 
+    legacy pytorch_pretrained_bert library.
+    """
 
     model_handler = {
         'bert': BertModel,
@@ -145,20 +197,32 @@ class BertParent(object):
         }
     }
 
-    def __init__(self, model_type: str, size: str):
+
+    def __init__(self, config: dict):
+        super().__init__(config)
+        
+        model_type: str = self.config['model_type'] 
+        self.model_type = model_type
+        size: str = self.config['size']
+        self.use_hidden: bool = self.config['use_hidden']
+
         self.model = self.model_handler[model_type].from_pretrained(self.size_handler[size][model_type])
         self.tokenizer = self.token_handler[model_type].from_pretrained(self.size_handler[size][model_type])
         self.vector_size = self.vector_handler[size][model_type]
-        self.model_type = model_type
-        self.model.eval()
+        
+        self.model.eval()        
+
+    
+    def embeddings(self, sentences: List[str]) -> ndarray:
+        return self.create_matrix(sentences, self.use_hidden)
 
     def create_matrix(self, content: List[str], use_hidden=False) -> ndarray:
-        train_vec = np.zeros((len(content), self.vector_size))
+        embeddings = np.zeros((len(content), self.vector_size))
         for i, t in tqdm(enumerate(content)):
-            train_vec[i] = self.extract_embeddings(t, use_hidden).data.numpy()
-        return train_vec
+            embeddings[i] = self.extract_embedding(t, use_hidden).data.numpy()
+        return embeddings
 
-    def extract_embeddings(self, text: str, use_hidden=True, squeeze=False) -> ndarray:
+    def extract_embedding(self, text: str, use_hidden=True, squeeze=False) -> ndarray:
         tokens_tensor = self.tokenize_input(text)
         hidden_states, pooled = self.model(tokens_tensor)
         if use_hidden:
@@ -177,8 +241,7 @@ class BertParent(object):
             indexed_tokens = self.tokenizer.convert_tokens_to_ids(tokenized_text)
         return torch.tensor([indexed_tokens])
 
-
-
+    
 class ClusterFeatures(object):
 
     def __init__(self, features, algorithm='kmeans', pca_k=None):
