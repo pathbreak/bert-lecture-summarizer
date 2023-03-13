@@ -150,9 +150,17 @@ class SummarizerV2(object):
         sentences = []
         sentence_ends = []
         for sent_i, sent in enumerate(doc.sents):
+
+            # NOTE: For some reason, spacy may include completely empty lines
+            # as sentences and that trips up some torch logic while calculating
+            # embeddings. Skip empty sentences.
+            sent_text = sent.text.strip()
+            if not sent_text:
+                L.info('Skip empty sentence')
+                continue
             sentence_ends.append(sent.end)
             #print(f'{sent_i}: {sent}')
-            sentences.append(sent.text)
+            sentences.append(sent_text)
 
         # This is a list of sets where each set is a sentence group related by references
         # to the same entity.
