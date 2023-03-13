@@ -29,7 +29,7 @@ from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 from sklearn.cluster import AffinityPropagation
-#import nltk
+import nltk
 
 from typing import List
 from tqdm import tqdm
@@ -531,7 +531,7 @@ class ClusterFeatures(object):
 
 class PreProcessor(object):
     def process_content_sentences(self, body: str) -> List[str]:
-        #sentences = nltk.tokenize.sent_tokenize(body)
+        sentences = nltk.tokenize.sent_tokenize(body)
         return [c for c in sentences if len(c) > 75 and not c.lower().startswith('but') and
                 not c.lower().startswith('and')
                 and not c.lower().__contains__('quiz') and
