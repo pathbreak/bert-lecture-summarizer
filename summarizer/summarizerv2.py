@@ -17,8 +17,8 @@ import logging as L
 import textwrap
 import bisect
  
-import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
+import torch
 from sentence_transformers import SentenceTransformer
 import transformers
 from transformers import AutoTokenizer, AutoModel
