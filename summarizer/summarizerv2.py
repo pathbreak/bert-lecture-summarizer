@@ -111,16 +111,19 @@ class SummarizerV2(object):
     def create_embedding_model(self, args):
         
         if args.emb_approach == 'sbert':
+            L.info(f'Loading sentence transformer {args.model}')
             emb_model = SBertEmbeddingModel({
                 'model': args.model #'all-mpnet-base-v2' #all-MiniLM-L6-v2
             }) 
         
         elif args.emb_approach == 'hf':
+            L.info(f'Loading HF transformer {args.model}')
             emb_model = HFTransformersEmbeddingModel({
                 'model': args.model # 'facebook/bart-large' #'distilbert-base-cased'
             })
         
         elif args.emb_approach == 'bertlegacy':
+            L.info(f'Loading legacy model {args.legacy_type} {args.legacy_size}')
             emb_model = BertLegacyEmbeddingModel({
                 'model_type' : args.legacy_type, #'bert'
                 'size' : args.legacy_size, #'large',
