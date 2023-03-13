@@ -18,6 +18,7 @@ import textwrap
  
 import torch
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
+from sentence_transformers import SentenceTransformer
 import numpy as np
 from numpy import ndarray
 from sklearn.cluster import KMeans
@@ -70,37 +71,31 @@ def process_cmd_summarize(args):
 
 class SummarizerV2(object):
     def summarize(self, lecture_content, ratio):
-        initial_sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
-        num_sent = len(initial_sentences)
+        
+        # Code based on lecture_summarizer.py > SingleModelProcessor.
+        
+        sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
+        num_sent = len(sentences)
         if  num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
         L.info(f'Content length:{num_sent}; ratio={ratio}; summary={ratio if ratio >= 1 else num_sent * ratio}')
 
-        model = SingleModelProcessor()
-        sentences = model.run_clusters(initial_sentences, ratio)
-
-        #result: str = ' '.join(sentences).strip()
-        #return result
-        return sentences
-        
-    
-class SingleModelProcessor(object):
-
-    def __init__(self, model='bert', model_size='large', use_hidden=True):
-        self.emb_model = BertLegacyEmbeddingModel({
+        '''
+        emb_model = BertLegacyEmbeddingModel({
             'model_type' : 'bert',
             'size' : 'large',
-            'use_hidden' : use_hidden
+            'use_hidden' : True
         })
-
-
-    def run_clusters(self, sentences: List[str], ratio=0.2) -> List[str]:
+        '''
+        emb_model = SBertEmbeddingModel({
+            'model': 'all-mpnet-base-v2' #all-MiniLM-L6-v2
+        }) 
 
         L.info('Creating embeddings matrix')
         #embeddings = self.model.create_matrix(sentences, self.use_hidden)
-        embeddings = self.emb_model.embeddings(sentences)
+        embeddings = emb_model.embeddings(sentences)
         L.info(f'Embeddings matrix shape: {embeddings.shape}')
-
+        
         L.info('Clustering embeddings')
         centroid_sent_idxes = ClusterFeatures(embeddings).cluster(ratio)
         L.info(f'centroid_sent_idxes: len={len(centroid_sent_idxes)}: {centroid_sent_idxes}')
@@ -111,9 +106,10 @@ class SingleModelProcessor(object):
         # if hidden_args[0] != 0:
         #    hidden_args.insert(0,0)
 
-        return [sentences[i] for i in centroid_sent_idxes]
+        summary_sentences = [sentences[i] for i in centroid_sent_idxes]
+        return summary_sentences
 
-
+    
 
 class EmbeddingModel(object):
     """ Base class for all embedding implementations."""
@@ -240,6 +236,37 @@ class BertLegacyEmbeddingModel(EmbeddingModel):
             tokenized_text = self.tokenizer.tokenize(text)
             indexed_tokens = self.tokenizer.convert_tokens_to_ids(tokenized_text)
         return torch.tensor([indexed_tokens])
+
+    
+class SBertEmbeddingModel(EmbeddingModel):
+    """ Embedding implementations using sentence-transformers."""
+
+    def __init__(self, config: dict):
+        self.config = config
+        self.emb_model = SentenceTransformer(self.config['model'])
+    
+    def embeddings(self, sentences: List[str]) -> ndarray:
+        """
+        Calculate embeddings for the given sentences.
+        
+        Args:
+            sentences -> List[str] : List of sentences.
+            
+        Returns:
+            A `numpy.ndarray` with shape (N, E) where N=len(sentences)
+            and E is the dimension of embedding vectors produced by this
+            model.
+        
+        """
+        
+        # encode() returns an ndarray.
+        embeddings = self.emb_model.encode(sentences)
+        return embeddings
+
+        
+
+
+
 
     
 class ClusterFeatures(object):
