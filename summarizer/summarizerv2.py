@@ -532,10 +532,19 @@ class ClusterFeatures(object):
 class PreProcessor(object):
     def process_content_sentences(self, body: str) -> List[str]:
         sentences = nltk.tokenize.sent_tokenize(body)
-        return [c for c in sentences if len(c) > 75 and not c.lower().startswith('but') and
-                not c.lower().startswith('and')
-                and not c.lower().__contains__('quiz') and
-                not c.lower().startswith('or')]
+        
+        sel_sentences = []
+        for s in sentences:
+            if len(s) > 75 and \
+                not s.lower().startswith('but') and \
+                not s.lower().startswith('and') and \
+                not s.lower().__contains__('quiz') and \
+                not s.lower().startswith('or'):
+                
+                sel_sentences.append(s)
+            else:
+                L.info(f'Remove sentence:{s}')
+        return sel_sentences
 
 
 
