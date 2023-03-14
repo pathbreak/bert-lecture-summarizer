@@ -163,9 +163,13 @@ class SummarizerV2(object):
             if not sent_text:
                 L.info('Skip empty sentence')
                 continue
-            sentence_ends.append(sent.end)
-            #print(f'{sent_i}: {sent}')
-            sentences.append(sent_text)
+            
+            if len(sent_text) >= 75 and \
+                not sent_text.lower().__contains__('quiz'):
+
+                sentence_ends.append(sent.end)
+                #print(f'{sent_i}: {sent}')
+                sentences.append(sent_text)
 
         # This is a list of sets where each set is a sentence group related by references
         # to the same entity.
