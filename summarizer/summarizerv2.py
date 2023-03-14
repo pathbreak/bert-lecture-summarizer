@@ -154,6 +154,7 @@ class SummarizerV2(object):
         # corresponding sentence indexes and cache them here in coref_sentences.
         sentences = []
         sentence_ends = []
+        skipped_sent_idxes = set()
         for sent_i, sent in enumerate(doc.sents):
 
             # NOTE: For some reason, spacy may include completely empty lines
@@ -162,13 +163,17 @@ class SummarizerV2(object):
             sent_text = sent.text.strip()
             if not sent_text:
                 L.info('Skip empty sentence')
-                continue
+                skipped_sent_idxes.add(sent_i)
             
-            if len(sent_text) >= 75:
+            if len(sent_text) < 75:
+                L.info('Skip short sentence')
+                skipped_sent_idxes.add(sent_i)
 
-                sentence_ends.append(sent.end)
-                #print(f'{sent_i}: {sent}')
-                sentences.append(sent_text)
+            sentence_ends.append(sent.end)
+            #print(f'{sent_i}: {sent}')
+            sentences.append(sent_text)
+
+        L.info(f'Skipped sentence indexes:{skipped_sent_idxes}')
 
         # This is a list of sets where each set is a sentence group related by references
         # to the same entity.
@@ -181,11 +186,18 @@ class SummarizerV2(object):
                     sent_i = bisect.bisect_left(sentence_ends, token_idx)
                     #tok = doc[token_idx]
                     #print(f'{tok}: tok #{token_idx} sent #{sent_i}: {tok.sent}')
-                    sents_for_chain.add(sent_i)
+                    if sent_i not in skipped_sent_idxes:
+                        L.info(f'Skipping #{sent_i} from coref chain')
+                        sents_for_chain.add(sent_i)
                 #print('\n\n')
                 coref_sentences.append(sents_for_chain)
-            
-        return sentences, coref_sentences
+        
+        final_sentences = []
+        for sent_i, s in sentences:
+            if sent_i not in skipped_sent_idxes:
+                final_sentences.append(s)
+        L.info(f'Final sentences:{len(final_sentences)}; Initial sentences:{len(sentences)}')
+        return final_sentences, coref_sentences
     
     
     def create_embedding_model(self, args):
