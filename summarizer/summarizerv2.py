@@ -152,7 +152,6 @@ class SummarizerV2(object):
         # The biset.bisect_left() allows us to find those sentence indexes quickly.
         # Example: If a coref chain contains 5th and 9th token, we find their
         # corresponding sentence indexes and cache them here in coref_sentences.
-        sentences = []
         sentence_ends = []
         skipped_sent_idxes = set()
         for sent_i, sent in enumerate(doc.sents):
@@ -171,7 +170,6 @@ class SummarizerV2(object):
 
             sentence_ends.append(sent.end)
             #print(f'{sent_i}: {sent}')
-            sentences.append(sent_text)
 
         L.info(f'Skipped sentence indexes:{skipped_sent_idxes}')
 
@@ -192,12 +190,12 @@ class SummarizerV2(object):
                 #print('\n\n')
                 coref_sentences.append(sents_for_chain)
         
-        final_sentences = []
-        for sent_i, s in sentences:
+        sentences = []
+        for sent_i, sent in enumerate(doc.sents):
             if sent_i not in skipped_sent_idxes:
-                final_sentences.append(s)
-        L.info(f'Final sentences:{len(final_sentences)}; Initial sentences:{len(sentences)}')
-        return final_sentences, coref_sentences
+                sentences.append(sent)
+        L.info(f'Sentences:{len(sentences)}')
+        return sentences, coref_sentences
     
     
     def create_embedding_model(self, args):
