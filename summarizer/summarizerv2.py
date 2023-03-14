@@ -69,6 +69,11 @@ def process_cmd_summarize(args):
     else:
         summary: str = ' '.join(summary_sentences).strip()
         print(textwrap.fill(summary, 80))
+        
+    if args.output_file:
+        with open(args.output_file, 'w') as f:
+            for s in summary_sentences:
+                f.write(s.strip() + '\n')
 
 
 
@@ -583,6 +588,7 @@ def parse_args():
 
     summ_cmd = subp.add_parser('summarize', parents=[common_args], description='Summarize', help='Summarize')
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
+    summ_cmd.add_argument('-o', metavar='OUTPUT-FILE', dest='output_file', help='Name of summary output file.')
     
     summ_cmd.add_argument('emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
     summ_cmd.add_argument('model', metavar='MODEL-NAME', 
