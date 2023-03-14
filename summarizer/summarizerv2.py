@@ -193,7 +193,7 @@ class SummarizerV2(object):
         sentences = []
         for sent_i, sent in enumerate(doc.sents):
             if sent_i not in skipped_sent_idxes:
-                sentences.append(sent)
+                sentences.append(sent.text)
         L.info(f'Sentences:{len(sentences)}')
         return sentences, coref_sentences
     
