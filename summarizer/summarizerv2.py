@@ -164,8 +164,7 @@ class SummarizerV2(object):
                 L.info('Skip empty sentence')
                 continue
             
-            if len(sent_text) >= 75 and \
-                not sent_text.lower().__contains__('quiz'):
+            if len(sent_text) >= 75:
 
                 sentence_ends.append(sent.end)
                 #print(f'{sent_i}: {sent}')
