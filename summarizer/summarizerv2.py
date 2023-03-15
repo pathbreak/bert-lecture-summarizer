@@ -600,7 +600,7 @@ class ClusterFeatures(object):
         return model.cluster_centers_
 
     def __find_closest_to_centroids(self, model, centroids, n_sentences):
-		'''
+        '''
         centroid_min = 1e7
         cur_arg = -1
         args = {}
@@ -626,8 +626,8 @@ class ClusterFeatures(object):
         # Shape: (n_sentences, n_centroids) 
         # 1st column is the sentences indices sorted by dist to centroid 1.
         # 2nd column is the sentences indices sorted by dist to centroid 2.
-		# 3rd column is the sentences indices sorted by dist to centroid 3.
-		# ...
+        # 3rd column is the sentences indices sorted by dist to centroid 3.
+        # ...
         sorted_indices = distances.argsort(axis=0)
         
         # Transpose for easier manipulation.
@@ -640,15 +640,15 @@ class ClusterFeatures(object):
         centroid_closest = {}
         used_idx = set()
         for c_i, centroid_indices in enumerate(sorted_indices):
-			sel_indices = []
-			for idx in centroid_indices:
-				if idx not in used_idx:
-					sel_indices.append(idx)
-					used_idx.add(idx)
-					if len(sel_indices) >= n_sentences:
-						centroid_closest[c_i] = sel_indices
-						break
-			
+            sel_indices = []
+            for idx in centroid_indices:
+                if idx not in used_idx:
+                    sel_indices.append(idx)
+                    used_idx.add(idx)
+                    if len(sel_indices) >= n_sentences:
+                        centroid_closest[c_i] = sel_indices
+                        break
+            
         return centroid_closest
 
 
