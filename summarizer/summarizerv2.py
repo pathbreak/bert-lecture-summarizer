@@ -581,7 +581,7 @@ class ClusterFeatures(object):
         # This is a dict {centroid_i : [list of sentences indices]}
         centroid_closest = self.__find_closest_to_centroids(model, centroids, n_sentences_per_centroid)
         all_indices = []
-        [all_indices.extend(l) for l in cluster_args.values()]
+        [all_indices.extend(l) for l in centroid_closest.values()]
         sorted_indices = sorted(all_indices)
         return sorted_indices
 
