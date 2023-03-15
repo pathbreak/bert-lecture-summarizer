@@ -86,8 +86,11 @@ def process_cmd_analyze(args):
     L.info('spacy end')
     
     sent_lens = []
-    for s in doc.sents:
-        sent_lens.append(len(s.text))
+    for i, s in enumerate(doc.sents):
+        t = s.text
+        l = len(t)
+        sent_lens.append(l)
+        print(f'#{i}:{l}:{t}')
         
     arr = np.array(sent_lens)
     L.info(f'Min:{arr.min()}, Max: {arr.max()}')
