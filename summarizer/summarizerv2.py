@@ -133,8 +133,16 @@ class SummarizerV2(object):
         
         L.info(f'Embeddings matrix shape: {embeddings.shape}')
         
+        seed_embeddings = None
+        if args.seed:
+            if len(args.seed) != int(ratio):
+                raise RuntimeError(f'Number of --seed {len(args.seed)} should match ratio {ratio}')
+
+            L.info(f'Finding embeddings for cluster center seeds')
+            seed_embeddings = emb_model.embeddings(args.seed)
+
         
-        centroid_sent_idxes = ClusterFeatures(embeddings).cluster(ratio)
+        centroid_sent_idxes = ClusterFeatures(embeddings, seed_embeddings=seed_embeddings).cluster(ratio)
         L.info(f'centroid_sent_idxes: len={len(centroid_sent_idxes)}: {centroid_sent_idxes}')
         
         # Not clear why this hardcoded logic exists to always include the
@@ -526,13 +534,14 @@ class HFTransformersEmbeddingModel(EmbeddingModel):
     
 class ClusterFeatures(object):
 
-    def __init__(self, features, algorithm='kmeans', pca_k=None):
+    def __init__(self, features, algorithm='kmeans', pca_k=None, seed_embeddings=None):
         if pca_k:
             self.features = PCA(n_components=pca_k).fit_transform(features)
         else:
             self.features = features
         self.algorithm = algorithm
         self.pca_k = pca_k
+        self.seed_embeddings = seed_embeddings
 
     def cluster(self, ratio=0.1):
         L.info(f'Clustering embeddings using {self.algorithm}')
@@ -557,7 +566,12 @@ class ClusterFeatures(object):
             return GaussianMixture(n_components=k)
         if self.algorithm == 'affinity':
             return AffinityPropagation()
-        return KMeans(n_clusters=k)
+        
+        # https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
+        init = 'k-means++'
+        if self.seed_embeddings:
+            init = self.seed_embeddings
+        return KMeans(n_clusters=k, init=init)
 
     def __get_centroids(self, model):
         if self.algorithm == 'gmm':
@@ -636,6 +650,9 @@ def parse_args():
     summ_cmd.add_argument('emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
     summ_cmd.add_argument('model', metavar='MODEL-NAME', 
                           help='Name of SBERT, HF, or legacy (bert-large/bert-base/gpt2) model')
+    
+    summ_cmd.add_argument('--seed', metavar='CLUSTER-CENTER-SEED', nargs='*',
+                          help='A theme expression or sentence that serves as initialization for cluster centroids')
     
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
