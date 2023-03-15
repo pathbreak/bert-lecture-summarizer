@@ -118,12 +118,30 @@ class SummarizerV2(object):
         
         #sentences: List[str] = PreProcessor().process_content_sentences(lecture_content)
         num_sent = len(sentences)
-        ratio = args.ratio
-        if  num_sent == 0:
+        if num_sent == 0:
             raise RuntimeError("No viable sentences found. Consider adding larger lectures.")
         
-        L.info(f'Content length:{num_sent}; ratio={ratio}; summary={ratio if ratio >= 1 else num_sent * ratio}')
+        # If seeds are supplied, use them as centroids and ignore ncentroids.
+        # If seeds aren't supplied, use ncentroids as number of centroids
+        #	and ratio as total number of sentences.
+        # if neither seeds nor ncentroids are given, default to ratio as
+        # 	number of centroids.
+        n_total_sents_in_summary = int(ratio) if ratio >= 1 else int(ratio * num_sent)
+        if args.seed is not None and len(args.seed) > 0:
+			num_centroids = len(args.seed)
+		elif args.ncentroids > 0:
+			num_centroids = args.ncentroids
+		else:
+			num_centroids = n_total_sents_in_summary
+			
+		n_sents_per_centroid = 1
+		if num_centroids < n_total_sents_in_summary:
+			n_sents_per_centroid = math.ceil(n_total_sents_in_summary / num_centroids)
+		L.info(f'n_total_sents_in_summary={n_total_sents_in_summary}; num_centroids={num_centroids}; ' +
+			'n_sents_per_centroid={n_sents_per_centroid}')
+		
 
+        
         L.info('Creating embeddings matrix')
         #embeddings = self.model.create_matrix(sentences, self.use_hidden)
         
@@ -543,7 +561,7 @@ class ClusterFeatures(object):
         self.pca_k = pca_k
         self.seed_embeddings = seed_embeddings
 
-    def cluster(self, ratio=0.1):
+    def cluster(self, ratio=0.1, n_sentences=3):
         L.info(f'Clustering embeddings using {self.algorithm}')
 
         # If ratio < 1, treat it as a ratio. If it's >=1, treat it as number of sentences.
@@ -557,9 +575,12 @@ class ClusterFeatures(object):
         
         model = self.__get_model(k).fit(self.features)
         centroids = self.__get_centroids(model)
-        cluster_args = self.__find_closest_args(centroids)
-        sorted_values = sorted(cluster_args.values())
-        return sorted_values
+        # This is a dict {centroid_i : [list of sentences indices]}
+        centroid_closest = self.__find_closest_to_centroids(model, centroids, n_sentences)
+        all_indices = []
+        [all_indices.extend(l) for l in cluster_args.values()]
+        sorted_indices = sorted(all_indices)
+        return sorted_indices
 
     def __get_model(self, k):
         if self.algorithm == 'gmm':
@@ -578,7 +599,8 @@ class ClusterFeatures(object):
             return model.means_
         return model.cluster_centers_
 
-    def __find_closest_args(self, centroids):
+    def __find_closest_to_centroids(self, model, centroids, n_sentences):
+		'''
         centroid_min = 1e7
         cur_arg = -1
         args = {}
@@ -593,7 +615,41 @@ class ClusterFeatures(object):
             args[j] = cur_arg
             centroid_min = 1e7
             cur_arg = -1
-        return args
+        '''
+        
+        # Calculate distances from every sample to each centroid.
+        # Shape: (n_features, n_centroids)
+        distances = model.transform(self.features)
+        
+        # Sort by distances from centroids and select the N sentences 
+        # closest to each centroid.
+        # Shape: (n_sentences, n_centroids) 
+        # 1st column is the sentences indices sorted by dist to centroid 1.
+        # 2nd column is the sentences indices sorted by dist to centroid 2.
+		# 3rd column is the sentences indices sorted by dist to centroid 3.
+		# ...
+        sorted_indices = distances.argsort(axis=0)
+        
+        # Transpose for easier manipulation.
+        # Shape: (n_centroids, n_sentences) 
+        # Now 1st **row** is the sentences indices sorted by dist to centroid 1.
+        sorted_indices = sorted_indices.T
+        
+        # If a sentence is close to more than 1 centroids, choose it only
+        # once and choose others for the remaining.
+        centroid_closest = {}
+        used_idx = set()
+        for c_i, centroid_indices in enumerate(sorted_indices):
+			sel_indices = []
+			for idx in centroid_indices:
+				if idx not in used_idx:
+					sel_indices.append(idx)
+					used_idx.add(idx)
+					if len(sel_indices) >= n_sentences:
+						centroid_closest[c_i] = sel_indices
+						break
+			
+        return centroid_closest
 
 
 
@@ -651,9 +707,11 @@ def parse_args():
     summ_cmd.add_argument('model', metavar='MODEL-NAME', 
                           help='Name of SBERT, HF, or legacy (bert-large/bert-base/gpt2) model')
     
+    summ_cmd.add_argument('--ncentroids', metavar='NUM-CENTROIDS', type=int, default=0,
+                          help='Number of centroids. Specify either this or --seed')
     summ_cmd.add_argument('--seed', metavar='CLUSTER-CENTER-SEED', action='append',
                           help='A theme expression or sentence that serves as initialization for cluster centroids')
-    
+                          
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
 
