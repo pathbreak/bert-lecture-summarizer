@@ -84,9 +84,11 @@ class SummarizerV2(object):
         # Code based on lecture_summarizer.py > SingleModelProcessor.
         
         # Using spacy for sentence segmentation and coreference detection.
+        L.info('spacy start')
         nlp = spacy.load("en_core_web_trf")
         nlp.add_pipe('coreferee')
         doc = nlp(lecture_content)
+        L.info('spacy end')
         
         sentences, coref_sentences = self.build_sentence_info(doc, args)
         
@@ -152,6 +154,7 @@ class SummarizerV2(object):
         # The biset.bisect_left() allows us to find those sentence indexes quickly.
         # Example: If a coref chain contains 5th and 9th token, we find their
         # corresponding sentence indexes and cache them here in coref_sentences.
+        L.info('Building sentence info')
         sentence_ends = []
         skipped_sent_idxes = set()
         for sent_i, sent in enumerate(doc.sents):
