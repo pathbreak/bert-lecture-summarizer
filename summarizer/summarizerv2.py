@@ -16,6 +16,7 @@ from pprint import pprint
 import logging as L
 import textwrap
 import bisect
+import math
  
 from pytorch_pretrained_bert import BertTokenizer, BertModel, GPT2Model, GPT2Tokenizer
 import torch
@@ -123,9 +124,9 @@ class SummarizerV2(object):
         
         # If seeds are supplied, use them as centroids and ignore ncentroids.
         # If seeds aren't supplied, use ncentroids as number of centroids
-        #	and ratio as total number of sentences.
+        #   and ratio as total number of sentences.
         # if neither seeds nor ncentroids are given, default to ratio as
-        # 	number of centroids.
+        #   number of centroids.
         ratio = args.ratio
         n_total_sents_in_summary = int(ratio) if ratio >= 1 else int(ratio * num_sent)
         if args.seed is not None and len(args.seed) > 0:
