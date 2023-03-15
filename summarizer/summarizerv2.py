@@ -140,7 +140,7 @@ class SummarizerV2(object):
         if num_centroids < n_total_sents_in_summary:
             n_sents_per_centroid = math.ceil(n_total_sents_in_summary / num_centroids)
         L.info(f'n_total_sents_in_summary={n_total_sents_in_summary}; num_centroids={num_centroids}; ' +
-            'n_sents_per_centroid={n_sents_per_centroid}')
+            f'n_sents_per_centroid={n_sents_per_centroid}')
         
 
         
