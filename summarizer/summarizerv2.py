@@ -128,18 +128,18 @@ class SummarizerV2(object):
         # 	number of centroids.
         n_total_sents_in_summary = int(ratio) if ratio >= 1 else int(ratio * num_sent)
         if args.seed is not None and len(args.seed) > 0:
-			num_centroids = len(args.seed)
-		elif args.ncentroids > 0:
-			num_centroids = args.ncentroids
-		else:
-			num_centroids = n_total_sents_in_summary
-			
-		n_sents_per_centroid = 1
-		if num_centroids < n_total_sents_in_summary:
-			n_sents_per_centroid = math.ceil(n_total_sents_in_summary / num_centroids)
-		L.info(f'n_total_sents_in_summary={n_total_sents_in_summary}; num_centroids={num_centroids}; ' +
-			'n_sents_per_centroid={n_sents_per_centroid}')
-		
+            num_centroids = len(args.seed)
+        elif args.ncentroids > 0:
+            num_centroids = args.ncentroids
+        else:
+            num_centroids = n_total_sents_in_summary
+            
+        n_sents_per_centroid = 1
+        if num_centroids < n_total_sents_in_summary:
+            n_sents_per_centroid = math.ceil(n_total_sents_in_summary / num_centroids)
+        L.info(f'n_total_sents_in_summary={n_total_sents_in_summary}; num_centroids={num_centroids}; ' +
+            'n_sents_per_centroid={n_sents_per_centroid}')
+        
 
         
         L.info('Creating embeddings matrix')
