@@ -651,7 +651,7 @@ def parse_args():
     summ_cmd.add_argument('model', metavar='MODEL-NAME', 
                           help='Name of SBERT, HF, or legacy (bert-large/bert-base/gpt2) model')
     
-    summ_cmd.add_argument('--seed', metavar='CLUSTER-CENTER-SEED', nargs='*',
+    summ_cmd.add_argument('--seed', metavar='CLUSTER-CENTER-SEED', nargs='*', action='append',
                           help='A theme expression or sentence that serves as initialization for cluster centroids')
     
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
