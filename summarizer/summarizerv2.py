@@ -126,6 +126,7 @@ class SummarizerV2(object):
         #	and ratio as total number of sentences.
         # if neither seeds nor ncentroids are given, default to ratio as
         # 	number of centroids.
+        ratio = args.ratio
         n_total_sents_in_summary = int(ratio) if ratio >= 1 else int(ratio * num_sent)
         if args.seed is not None and len(args.seed) > 0:
             num_centroids = len(args.seed)
@@ -160,7 +161,8 @@ class SummarizerV2(object):
             seed_embeddings = emb_model.embeddings(args.seed)
 
         
-        centroid_sent_idxes = ClusterFeatures(embeddings, seed_embeddings=seed_embeddings).cluster(ratio)
+        centroid_sent_idxes = ClusterFeatures(embeddings, seed_embeddings=seed_embeddings).cluster(
+            num_centroids, n_sents_per_centroid)
         L.info(f'centroid_sent_idxes: len={len(centroid_sent_idxes)}: {centroid_sent_idxes}')
         
         # Not clear why this hardcoded logic exists to always include the
@@ -561,22 +563,24 @@ class ClusterFeatures(object):
         self.pca_k = pca_k
         self.seed_embeddings = seed_embeddings
 
-    def cluster(self, ratio=0.1, n_sentences=3):
+    def cluster(self, num_centroids, n_sentences_per_centroid):
         L.info(f'Clustering embeddings using {self.algorithm}')
 
+        '''
         # If ratio < 1, treat it as a ratio. If it's >=1, treat it as number of sentences.
         #k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
         if ratio >= 1:
             k = int(ratio)
         else:
             k = 1 if ratio * len(self.features) < 1 else int(len(self.features) * ratio)
+        '''
 
-        L.info(f'Number of centroids: {k}. Length of features matrix:{len(self.features)}')
+        L.info(f'Number of centroids: {num_centroids}. Length of features matrix:{len(self.features)}')
         
-        model = self.__get_model(k).fit(self.features)
+        model = self.__get_model(num_centroids).fit(self.features)
         centroids = self.__get_centroids(model)
         # This is a dict {centroid_i : [list of sentences indices]}
-        centroid_closest = self.__find_closest_to_centroids(model, centroids, n_sentences)
+        centroid_closest = self.__find_closest_to_centroids(model, centroids, n_sentences_per_centroid)
         all_indices = []
         [all_indices.extend(l) for l in cluster_args.values()]
         sorted_indices = sorted(all_indices)
@@ -599,7 +603,7 @@ class ClusterFeatures(object):
             return model.means_
         return model.cluster_centers_
 
-    def __find_closest_to_centroids(self, model, centroids, n_sentences):
+    def __find_closest_to_centroids(self, model, centroids, n_sentences_per_centroid):
         '''
         centroid_min = 1e7
         cur_arg = -1
@@ -645,7 +649,7 @@ class ClusterFeatures(object):
                 if idx not in used_idx:
                     sel_indices.append(idx)
                     used_idx.add(idx)
-                    if len(sel_indices) >= n_sentences:
+                    if len(sel_indices) >= n_sentences_per_centroid:
                         centroid_closest[c_i] = sel_indices
                         break
             
