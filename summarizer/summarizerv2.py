@@ -174,6 +174,7 @@ class SummarizerV2(object):
             sentence_ends.append(sent.end)
             #print(f'{sent_i}: {sent}')
 
+        L.info(f'Original sentences:{sent_i+1}')
         L.info(f'Skipped sentence indexes:{skipped_sent_idxes}')
 
         # This is a list of sets where each set is a sentence group related by references
