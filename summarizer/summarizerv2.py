@@ -155,8 +155,6 @@ class SummarizerV2(object):
         
         seed_embeddings = None
         if args.seed:
-            if len(args.seed) != int(ratio):
-                raise RuntimeError(f'Number of --seed {len(args.seed)} should match ratio {ratio}')
 
             L.info(f'Finding embeddings for cluster center seeds')
             seed_embeddings = emb_model.embeddings(args.seed)
