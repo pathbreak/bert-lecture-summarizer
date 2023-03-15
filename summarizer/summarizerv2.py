@@ -92,7 +92,9 @@ def process_cmd_analyze(args):
     arr = np.array(sent_lens)
     L.info(f'Min:{arr.min()}, Max: {arr.max()}')
     
-    h = np.histogram(arr, args.bins)
+    bin_edges = [i for i in range(0, arr.max(), args.binwidth)]
+    bin_edges.append(args.max())
+    h = np.histogram(arr, bin_edges)
     print(h)
 
 
@@ -645,7 +647,7 @@ def parse_args():
     analyze_cmd = subp.add_parser('analyze', parents=[common_args], description='Analyze sentences', 
                                        help='Analyze sentences')
     analyze_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
-    analyze_cmd.add_argument('bins', metavar='BINS', type=int, default=10, help='Number of bins for histogram')
+    analyze_cmd.add_argument('binwidth', metavar='BINWIDTH', type=int, default=20, help='Bin width in num chars for histogram')
 
     args = argp.parse_args()
     
