@@ -569,7 +569,7 @@ class ClusterFeatures(object):
         
         # https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
         init = 'k-means++'
-        if self.seed_embeddings:
+        if self.seed_embeddings is not None and len(self.seed_embeddings > 0):
             init = self.seed_embeddings
         return KMeans(n_clusters=k, init=init)
 
