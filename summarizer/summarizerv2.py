@@ -93,7 +93,7 @@ def process_cmd_analyze(args):
     L.info(f'Min:{arr.min()}, Max: {arr.max()}')
     
     bin_edges = [i for i in range(0, arr.max(), args.binwidth)]
-    bin_edges.append(args.max())
+    bin_edges.append(arr.max())
     h = np.histogram(arr, bin_edges)
     print(h)
 
