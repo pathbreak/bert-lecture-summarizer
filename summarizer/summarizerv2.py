@@ -87,7 +87,7 @@ def process_cmd_analyze(args):
     
     sent_lens = []
     for s in doc.sents:
-        sent_lens.append(len(s))
+        sent_lens.append(len(s.text))
         
     arr = np.array(sent_lens)
     L.info(f'Min:{arr.min()}, Max: {arr.max()}')
