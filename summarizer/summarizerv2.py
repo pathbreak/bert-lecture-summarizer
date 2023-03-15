@@ -76,6 +76,22 @@ def process_cmd_summarize(args):
                 f.write(s.strip() + '\n')
 
 
+def process_cmd_analyze(args):
+    with open(args.lecture, 'r') as f:
+        lecture_content = f.read()
+
+    L.info('spacy start')
+    nlp = spacy.load("en_core_web_trf")
+    doc = nlp(lecture_content)
+    L.info('spacy end')
+    
+    sent_lens = []
+    for s in doc.sents:
+        sent_lens.append(len(s))
+    
+    h = np.histogram(sent_lens, args.bins)
+    print(h)
+
 
 
 class SummarizerV2(object):
@@ -167,7 +183,7 @@ class SummarizerV2(object):
                 L.info('Skip empty sentence')
                 skipped_sent_idxes.add(sent_i)
             
-            if len(sent_text) < 75:
+            if len(sent_text) < args.min_length:
                 L.info('Skip short sentence')
                 skipped_sent_idxes.add(sent_i)
 
@@ -605,6 +621,8 @@ def parse_args():
 
     summ_cmd = subp.add_parser('summarize', parents=[common_args], description='Summarize', help='Summarize')
     summ_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
+    summ_cmd.add_argument('-l', metavar='MIN-LENGTH', dest='min_length', type=int, default=75, 
+                          help='Minimum length for sentences.')
     summ_cmd.add_argument('-o', metavar='OUTPUT-FILE', dest='output_file', help='Name of summary output file.')
     
     summ_cmd.add_argument('emb_approach', metavar='APPROACH', help='sbert|hf|bertlegacy')
@@ -613,12 +631,18 @@ def parse_args():
     
     summ_cmd.add_argument('ratio', metavar='RATIO', type=float, 
                           help='Ratio of summary. <1 for ratio, >=1 for number of sentences')
+
     summ_cmd.add_argument('--nojoin', action='store_true', 
                           help='Print summary as list of sentences instead of joined paragraph.')
     summ_cmd.add_argument('--nocoref', action='store_true', 
                           help='Disable coreference resolution.')
     #X_cmd.add_argument('--flag-def-false', dest='flag_def_false', action='store_true', help='Boolean flag default false')
     #X_cmd.add_argument('--flag-def-true', dest='flag_def_true' action='store_false', help='Boolean flag default true')
+
+    analyze_cmd = subp.add_parser('analyze', parents=[common_args], description='Analyze sentences', 
+                                       help='Analyze sentences')
+    analyze_cmd.add_argument('lecture', metavar='LECTURE-FILE', help='The lecture text file')
+    analyze_cmd.add_argument('bins', metavar='BINS', type=int, default=10, help='Number of bins for histogram')
 
     args = argp.parse_args()
     
